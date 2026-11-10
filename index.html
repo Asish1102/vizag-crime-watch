@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b1324" />
+    <title>Vizag Crime Watch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">V</div>
+          <div><strong>VIZAG</strong><span>CRIME WATCH</span></div>
+        </div>
+        <div class="sidebar-copy">
+          <p class="eyebrow">COMMAND CENTER</p>
+          <h1>Crime hotspot intelligence</h1>
+          <p>Upload local datasets to explore incident concentration across Visakhapatnam.</p>
+        </div>
+        <div class="sidebar-note">
+          <span class="pulse"></span>
+          <div><strong>Browser-only analysis</strong><small>Your files stay on this device.</small></div>
+        </div>
+        <footer>© 2026 Vizag Crime Watch<br /><span>Decision support prototype</span></footer>
+      </aside>
+
+      <main class="content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">VISAKHAPATNAM / LIVE VIEW</p>
+            <h2>Hotspot overview</h2>
+          </div>
+          <div class="topbar-actions">
+            <label class="upload-button primary">
+              <input id="crime-file" type="file" accept=".xlsx,.xls,.csv" />
+              <span>＋</span> Upload new dataset
+            </label>
+            <label class="upload-button secondary">
+              <input id="shape-file" type="file" accept=".zip,.shp" />
+              <span>＋</span> Add boundary .zip
+            </label>
+            <label class="upload-button secondary">
+              <input id="gis-file" type="file" accept=".xlsx,.xls,.csv" />
+              <span>＋</span> Upload GIS dataset
+            </label>
+            <button id="clear-data" class="upload-button ghost" type="button">Clear data</button>
+          </div>
+        </header>
+
+        <section id="notice" class="notice">
+          <div class="notice-icon">i</div>
+          <div><strong>Ready for your files</strong><p>Upload an Excel/CSV file with coordinates. A zipped shapefile (SHP + SHX + DBF + PRJ) adds local boundaries.</p></div>
+          <button id="dismiss-notice" aria-label="Dismiss">×</button>
+        </section>
+
+        <section class="kpi-grid">
+          <article class="kpi-card accent">
+            <div class="kpi-label">TOTAL INCIDENTS <span class="info">i</span></div>
+            <div class="kpi-value" id="total-incidents">—</div>
+            <div class="kpi-foot"><span class="trend up">↗</span> <span id="record-status">Upload data to begin</span></div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-label">HOTSPOT CELLS <span class="info">i</span></div>
+            <div class="kpi-value" id="hotspot-cells">—</div>
+            <div class="kpi-foot muted">Based on 0.01° grid cells</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-label">PEAK CELL COUNT <span class="info">i</span></div>
+            <div class="kpi-value" id="peak-cell">—</div>
+            <div class="kpi-foot muted">Highest concentration in one cell</div>
+          </article>
+          <article class="kpi-card">
+            <div class="kpi-label">DATA COVERAGE <span class="info">i</span></div>
+            <div class="kpi-value" id="coverage">—</div>
+            <div class="kpi-foot muted" id="coverage-foot">Latitude + longitude records</div>
+          </article>
+        </section>
+
+        <section class="toolbar">
+          <div class="filter-group">
+            <label for="year-filter">YEAR</label>
+            <select id="year-filter"><option value="all">All years</option></select>
+          </div>
+          <div class="filter-group">
+            <label for="severity-filter">VIEW</label>
+            <select id="severity-filter"><option value="all">All incidents</option><option value="hotspots">Hotspots only</option></select>
+          </div>
+          <div class="data-source" id="data-source"><span class="status-dot"></span><span id="source-name">No file loaded</span><small id="source-time"></small></div>
+        </section>
+
+        <section id="gis-panel" class="panel gis-panel hidden">
+          <div class="panel-heading">
+            <div><p class="eyebrow">CASE INFORMATION</p><h3>GIS dataset intelligence</h3></div>
+            <span class="panel-badge" id="gis-file-name">NO GIS FILE</span>
+          </div>
+          <div class="gis-summary">
+            <div><span>RECORDS</span><strong id="gis-records">—</strong></div>
+            <div><span>POLICE STATIONS</span><strong id="gis-stations">—</strong></div>
+            <div><span>CRIME TYPES</span><strong id="gis-types">—</strong></div>
+            <div><span>COORDINATES AVAILABLE</span><strong id="gis-coordinates">—</strong></div>
+          </div>
+          <div class="gis-content">
+            <div><p class="eyebrow">CRIME TYPE DISTRIBUTION</p><div id="gis-types-list" class="type-list"></div></div>
+            <div class="gis-table-wrap">
+              <p class="eyebrow">CASE RECORDS</p>
+              <table><thead><tr><th>FIR / YEAR</th><th>POLICE STATION</th><th>SECTION OF LAW</th><th>TYPE</th><th>LOCATION</th></tr></thead><tbody id="gis-table"><tr><td colspan="5" class="table-empty">Upload the GIS dataset to display case information.</td></tr></tbody></table>
+            </div>
+          </div>
+        </section>
+
+        <section class="visual-grid">
+          <article class="panel map-panel">
+            <div class="panel-heading">
+              <div><p class="eyebrow">SPATIAL DISTRIBUTION</p><h3>Incident density map</h3></div>
+              <div class="map-legend"><span><i class="legend-dot incident"></i> Incidents</span><span><i class="legend-dot hotspot"></i> Hotspot cell</span></div>
+            </div>
+            <div id="map" class="map"></div>
+            <div class="map-empty" id="map-empty"><div class="empty-icon">⌖</div><strong>Upload coordinates to populate the map</strong><span>Latitude and longitude are detected automatically.</span></div>
+          </article>
+          <article class="panel distribution-panel">
+            <div class="panel-heading"><div><p class="eyebrow">PATTERN ANALYSIS</p><h3>Incidents by year</h3></div><span class="panel-badge" id="year-count">—</span></div>
+            <div id="year-chart" class="bar-chart"><div class="chart-empty">Upload data to see year distribution</div></div>
+            <div class="chart-axis"><span>EARLIEST</span><span>YEAR</span><span>LATEST</span></div>
+          </article>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="panel table-panel">
+            <div class="panel-heading"><div><p class="eyebrow">TOP CONCENTRATIONS</p><h3>Hotspot cells</h3></div><span class="panel-badge">GRID RANKING</span></div>
+            <div class="table-wrap">
+              <table><thead><tr><th>RANK</th><th>GRID CENTER</th><th>INCIDENTS</th><th>SHARE</th></tr></thead><tbody id="hotspot-table"><tr><td colspan="4" class="table-empty">Upload coordinates to calculate hotspots.</td></tr></tbody></table>
+            </div>
+          </article>
+          <article class="panel insight-panel">
+            <div class="panel-heading"><div><p class="eyebrow">FIELD GUIDE</p><h3>How to read this view</h3></div></div>
+            <div class="insight-list">
+              <div><span class="insight-number">01</span><p><strong>Cells are relative.</strong> Hotspots are calculated by grouping incidents into 0.01° latitude/longitude grid cells.</p></div>
+              <div><span class="insight-number">02</span><p><strong>Use the boundary layer.</strong> Add a zipped shapefile to see the subdistrict outline over the incident layer.</p></div>
+              <div><span class="insight-number">03</span><p><strong>Filter, then compare.</strong> Year filters recalculate every KPI, chart, and map marker.</p></div>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/shpjs@6.1.0/dist/shp.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
