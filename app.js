@@ -1,8 +1,8 @@
-/* global XLSX, L, shp */
+/* global XLSX, L */
 (() => {
-  const state = { records: [], filtered: [], hotspots: [], map: null, markers: null, boundary: null, source: '', gis: [] };
+  const state = { records: [], filtered: [], hotspots: [], map: null, markers: null, source: '', gis: [], gisFileName: '', gisSheetNames: [], categories: [] };
   const $ = (id) => document.getElementById(id);
-  const els = { total: $('total-incidents'), cells: $('hotspot-cells'), peak: $('peak-cell'), coverage: $('coverage'), status: $('record-status'), source: $('data-source'), sourceName: $('source-name'), sourceTime: $('source-time'), year: $('year-filter'), view: $('severity-filter'), chart: $('year-chart'), table: $('hotspot-table'), empty: $('map-empty'), notice: $('notice'), crimeFile: $('crime-file'), gisFile: $('gis-file'), gisPanel: $('gis-panel') };
+  const els = { total: $('total-incidents'), cells: $('hotspot-cells'), peak: $('peak-cell'), coverage: $('coverage'), status: $('record-status'), source: $('data-source'), sourceName: $('source-name'), sourceTime: $('source-time'), year: $('year-filter'), view: $('severity-filter'), chart: $('year-chart'), table: $('hotspot-table'), empty: $('map-empty'), notice: $('notice'), crimeFile: $('crime-file'), gisFile: $('gis-file'), rtiFile: $('rti-file'), gisPanel: $('gis-panel') };
   const format = (n) => Number(n).toLocaleString('en-IN');
 
   function findColumn(headers, candidates) {
@@ -51,15 +51,18 @@
     const records = rows.slice(headerRowIndex + 1).filter((row) => row.some((cell) => String(cell ?? '').trim() !== '')).map((row) => ({ fir: value(row, ['firnumber', 'fir']), station: value(row, ['nameofps', 'policestation', 'station']), section: value(row, ['sectionoflaw', 'section']) || 'Not specified', type: value(row, ['typeandnature', 'crime', 'type']) || 'Not specified', location: value(row, ['locationofoccurrence', 'location']), coordinates: value(row, ['latitudeandlongitude', 'coordinates']) }));
     return { records, category: '', count: 0 };
   }
-  function renderGIS(records, fileName, categories, sheetNames) {
-    const categoryTotal = categories.reduce((sum, [, count]) => sum + count, 0); const displayTotal = records.length || categoryTotal;
-    state.gis = records; els.gisPanel.classList.remove('hidden'); $('gis-file-name').textContent = fileName.toUpperCase(); $('gis-records').textContent = format(displayTotal); $('gis-stations').textContent = new Set(records.map((r) => r.station).filter(Boolean)).size; $('gis-types').textContent = new Set(records.map((r) => r.type).filter(Boolean)).size; $('gis-coordinates').textContent = `${records.filter((r) => r.coordinates && !/not available|na|n\/a/i.test(r.coordinates)).length} / ${format(displayTotal)}`;
-    $('gis-sheet-note').textContent = sheetNames.length > 1 ? `${sheetNames.length} worksheets detected: ${sheetNames.join(', ')}` : '';
-    const types = [...records.reduce((map, r) => map.set(r.type, (map.get(r.type) || 0) + 1), new Map())].sort((a, b) => b[1] - a[1]).slice(0, 6); const max = types[0]?.[1] || 1; $('gis-types-list').innerHTML = types.map(([type, count]) => `<div class="type-row"><label><span>${type}</span><b>${count}</b></label><i><b style="width:${count / max * 100}%"></b></i></div>`).join('');
+  function renderOffenceChart(categories, records) {
     const offenceEntries = (categories.length ? categories : [...records.reduce((map, r) => map.set(r.type, (map.get(r.type) || 0) + 1), new Map())]).sort((a, b) => b[1] - a[1]);
     const offenceTotal = offenceEntries.reduce((sum, [, count]) => sum + count, 0) || 1; const palette = ['#f08b5d', '#19c7d7', '#2768f5', '#8e9b86', '#b69b79', '#6c7ae0', '#d2a84d', '#9d6f96']; let angle = 0;
     const segments = offenceEntries.map(([, count], index) => { const start = angle; angle += count / offenceTotal * 360; return `${palette[index % palette.length]} ${start}deg ${angle}deg`; }).join(', ');
     $('offence-list').innerHTML = offenceEntries.length ? `<div class="offence-pie" style="background:conic-gradient(${segments})" aria-label="Offence category pie chart"><div class="offence-pie-hole"><strong>${format(offenceTotal)}</strong><span>CASES</span></div></div><div class="offence-legend">${offenceEntries.map(([category, count], index) => `<div class="offence-legend-row"><i style="background:${palette[index % palette.length]}"></i><strong>${category}</strong><span>${format(count)} · ${(count / offenceTotal * 100).toFixed(1)}%</span></div>`).join('')}</div>` : '<div class="table-empty">No offence categories found.</div>';
+  }
+  function renderGIS(records, fileName, categories, sheetNames) {
+    const categoryTotal = categories.reduce((sum, [, count]) => sum + count, 0); const displayTotal = records.length || categoryTotal;
+    state.gis = records; state.gisFileName = fileName; state.gisSheetNames = sheetNames; els.gisPanel.classList.remove('hidden'); $('gis-file-name').textContent = fileName.toUpperCase(); $('gis-records').textContent = format(displayTotal); $('gis-stations').textContent = new Set(records.map((r) => r.station).filter(Boolean)).size; $('gis-types').textContent = new Set(records.map((r) => r.type).filter(Boolean)).size; $('gis-coordinates').textContent = `${records.filter((r) => r.coordinates && !/not available|na|n\/a/i.test(r.coordinates)).length} / ${format(displayTotal)}`;
+    $('gis-sheet-note').textContent = sheetNames.length > 1 ? `${sheetNames.length} worksheets detected: ${sheetNames.join(', ')}` : '';
+    const types = [...records.reduce((map, r) => map.set(r.type, (map.get(r.type) || 0) + 1), new Map())].sort((a, b) => b[1] - a[1]).slice(0, 6); const max = types[0]?.[1] || 1; $('gis-types-list').innerHTML = types.map(([type, count]) => `<div class="type-row"><label><span>${type}</span><b>${count}</b></label><i><b style="width:${count / max * 100}%"></b></i></div>`).join('');
+    renderOffenceChart(categories, records);
     $('gis-table').innerHTML = records.slice(0, 8).map((r) => `<tr><td>${r.fir || '—'}</td><td>${r.station || '—'}</td><td>${r.section || '—'}</td><td>${r.type}</td><td>${r.location || '—'}</td></tr>`).join('') || '<tr><td colspan="5" class="table-empty">No case records found.</td></tr>';
   }
   function renderChart(records) {
@@ -96,28 +99,31 @@
     state.records = records; state.source = file.name; els.year.value = 'all'; els.view.value = 'all'; els.sourceTime.textContent = `Updated ${new Date().toLocaleString()}`; populateYears(); render(); els.notice.querySelector('strong').textContent = `${format(records.length)} coordinate records loaded`; els.notice.querySelector('p').textContent = 'Previous analysis replaced. Filters, hotspot grid, map, and charts were recalculated from this upload.'; els.notice.style.background = '#edf8fa'; els.crimeFile.value = '';
   }
   async function loadGISWorkbook(file) {
-    const buffer = await file.arrayBuffer(); const workbook = XLSX.read(buffer, { type: 'array', cellDates: true }); const gisRecords = []; const categories = []; const coordinateSets = []; const sheetNames = [];
+    const buffer = await file.arrayBuffer(); const workbook = XLSX.read(buffer, { type: 'array', cellDates: true }); const sheets = workbook.SheetNames.map((name) => ({ name, rows: XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '' }) })).filter((sheet) => sheet.rows.length);
+    const selected = sheets.sort((a, b) => b.rows.length - a.rows.length)[0];
+    if (!selected) { els.notice.querySelector('strong').textContent = 'GIS file is empty'; els.notice.querySelector('p').textContent = 'No GIS records were found in the uploaded file.'; return; }
+    const parsed = parseGISSheet(selected.rows, selected.name);
+    if (!parsed.records.length) { els.notice.querySelector('strong').textContent = 'GIS headers not detected'; els.notice.querySelector('p').textContent = 'Use a GIS sheet with fields such as FIR, police station, section of law, crime type, or location.'; return; }
+    renderGIS(parsed.records, file.name, state.categories, [selected.name]); els.notice.querySelector('strong').textContent = `${format(parsed.records.length)} GIS records loaded`; els.notice.querySelector('p').textContent = 'GIS data was loaded separately from the coordinates and RTI category files.'; els.notice.style.background = '#edf8fa'; els.gisFile.value = '';
+  }
+  async function loadRTIWorkbook(file) {
+    const buffer = await file.arrayBuffer(); const workbook = XLSX.read(buffer, { type: 'array', cellDates: true }); const categories = [];
     workbook.SheetNames.forEach((name) => {
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[name], { header: 1, defval: '' });
-      if (!rows.length) return;
-      sheetNames.push(name);
-      const coordinates = parseRows(rows);
-      if (coordinates.length) { coordinateSets.push(coordinates); return; }
       const parsed = parseGISSheet(rows, name);
-      if (parsed.records.length) gisRecords.push(...parsed.records);
-      else if (parsed.count > 0) categories.push([name, parsed.count]);
+      if (parsed.count > 0) categories.push([name, parsed.count]);
+      else if (parsed.records.length) categories.push([name, parsed.records.length]);
     });
-    if (!gisRecords.length && !categories.length && !coordinateSets.length) { els.notice.querySelector('strong').textContent = 'RTI workbook is empty'; els.notice.querySelector('p').textContent = 'No GIS, coordinate, or incident-category records were found in the uploaded workbook.'; return; }
-    if (coordinateSets.length) { state.records = coordinateSets.sort((a, b) => b.length - a.length)[0]; state.source = file.name; els.year.value = 'all'; els.view.value = 'all'; els.sourceTime.textContent = `Updated ${new Date().toLocaleString()}`; populateYears(); render(); }
-    renderGIS(gisRecords, file.name, categories, sheetNames); els.notice.querySelector('strong').textContent = `${format(gisRecords.length || categories.reduce((sum, [, count]) => sum + count, 0))} RTI records loaded`; els.notice.querySelector('p').textContent = coordinateSets.length ? 'Coordinate, GIS, and incident-category worksheets were detected and separated for analysis.' : 'GIS and incident-category worksheets were detected and separated for analysis.'; els.notice.style.background = '#edf8fa'; els.gisFile.value = '';
-  }
-  async function loadBoundary(file) {
-    try { ensureMap(); const buffer = await file.arrayBuffer(); let geojson; if (file.name.toLowerCase().endsWith('.shp') && typeof shp.parseShp === 'function') { const geometries = shp.parseShp(buffer); geojson = { type: 'FeatureCollection', features: geometries.map((geometry) => ({ type: 'Feature', properties: {}, geometry })) }; } else { geojson = await shp(buffer); } if (state.boundary) state.map.removeLayer(state.boundary); state.boundary = L.geoJSON(geojson, { style: { color: '#19aab8', weight: 1.5, fillColor: '#19c7d7', fillOpacity: .08 } }).addTo(state.map); state.map.fitBounds(state.boundary.getBounds(), { padding: [20, 20] }); els.notice.querySelector('strong').textContent = 'Boundary layer added'; els.notice.querySelector('p').textContent = 'Subdistrict boundaries are now visible on the map.'; } catch (error) { els.notice.querySelector('strong').textContent = 'Boundary could not be loaded'; els.notice.querySelector('p').textContent = 'For best results upload a ZIP containing .shp, .shx, .dbf, and .prj files.'; console.error(error); }
+    state.categories = categories.sort((a, b) => b[1] - a[1]);
+    if (state.gis.length) renderGIS(state.gis, state.gisFileName, state.categories, state.gisSheetNames);
+    else { els.gisPanel.classList.remove('hidden'); $('gis-file-name').textContent = 'RTI CATEGORIES'; $('gis-records').textContent = '—'; $('gis-stations').textContent = '—'; $('gis-types').textContent = '—'; $('gis-coordinates').textContent = '—'; $('gis-sheet-note').textContent = `${workbook.SheetNames.length} worksheets detected: ${workbook.SheetNames.join(', ')}`; $('gis-types-list').innerHTML = ''; $('gis-table').innerHTML = '<tr><td colspan="5" class="table-empty">Upload GIS data to display case information.</td></tr>'; renderOffenceChart(state.categories, []); }
+    const total = state.categories.reduce((sum, [, count]) => sum + count, 0);
+    els.notice.querySelector('strong').textContent = `${format(total)} RTI category records loaded`; els.notice.querySelector('p').textContent = 'RTI incident categories were loaded separately from the coordinates and GIS data.'; els.notice.style.background = '#edf8fa'; els.rtiFile.value = '';
   }
   $('crime-file').addEventListener('change', (e) => e.target.files[0] && loadWorkbook(e.target.files[0]).catch(console.error));
   $('gis-file').addEventListener('change', (e) => e.target.files[0] && loadGISWorkbook(e.target.files[0]).catch(console.error));
-  $('shape-file').addEventListener('change', (e) => e.target.files[0] && loadBoundary(e.target.files[0]));
+  $('rti-file').addEventListener('change', (e) => e.target.files[0] && loadRTIWorkbook(e.target.files[0]).catch(console.error));
   els.year.addEventListener('change', render); els.view.addEventListener('change', render); $('dismiss-notice').addEventListener('click', () => els.notice.remove());
-  $('clear-data').addEventListener('click', () => { state.records = []; state.filtered = []; state.hotspots = []; state.source = ''; state.gis = []; els.year.innerHTML = '<option value="all">All years</option>'; els.year.value = 'all'; els.view.value = 'all'; els.total.textContent = '—'; els.cells.textContent = '—'; els.peak.textContent = '—'; els.coverage.textContent = '—'; els.status.textContent = 'Upload data to begin'; els.sourceName.textContent = 'No file loaded'; els.sourceTime.textContent = ''; els.source.querySelector('.status-dot').classList.remove('ready'); els.chart.innerHTML = '<div class="chart-empty">Upload data to see year distribution</div>'; els.table.innerHTML = '<tr><td colspan="4" class="table-empty">Upload coordinates to calculate hotspots.</td></tr>'; els.gisPanel.classList.add('hidden'); $('gis-sheet-note').textContent = ''; if (state.markers) state.markers.clearLayers(); els.empty.classList.remove('hidden'); els.crimeFile.value = ''; els.gisFile.value = ''; });
+  $('clear-data').addEventListener('click', () => { state.records = []; state.filtered = []; state.hotspots = []; state.source = ''; state.gis = []; state.gisFileName = ''; state.gisSheetNames = []; state.categories = []; els.year.innerHTML = '<option value="all">All years</option>'; els.year.value = 'all'; els.view.value = 'all'; els.total.textContent = '—'; els.cells.textContent = '—'; els.peak.textContent = '—'; els.coverage.textContent = '—'; els.status.textContent = 'Upload data to begin'; els.sourceName.textContent = 'No file loaded'; els.sourceTime.textContent = ''; els.source.querySelector('.status-dot').classList.remove('ready'); els.chart.innerHTML = '<div class="chart-empty">Upload data to see year distribution</div>'; els.table.innerHTML = '<tr><td colspan="4" class="table-empty">Upload coordinates to calculate hotspots.</td></tr>'; els.gisPanel.classList.add('hidden'); $('gis-sheet-note').textContent = ''; if (state.markers) state.markers.clearLayers(); els.empty.classList.remove('hidden'); els.crimeFile.value = ''; els.gisFile.value = ''; els.rtiFile.value = ''; });
   window.addEventListener('resize', () => state.map && state.map.invalidateSize());
 })();

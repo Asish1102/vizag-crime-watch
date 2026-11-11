@@ -17,12 +17,12 @@ Do not expose database connection strings or privileged database credentials in 
 
 ## Run it
 
-Open `index.html` in a modern browser. An internet connection is needed for the Leaflet, SheetJS, shpjs, font, and map-tile CDNs.
+Open `index.html` in a modern browser. An internet connection is needed for the Leaflet, SheetJS, font, and map-tile CDNs.
 
 ## Uploads
 
-- **Crime data:** `.xlsx`, `.xls`, or `.csv` with latitude and longitude fields. The dashboard automatically detects common names such as `Latitude`, `Lat`, `Longitude`, `Lon`, `Year`, `Crime`, and `Incident`. Select **Upload new dataset** at any time: the previous analysis is replaced, filters reset, and all KPIs, charts, hotspots, and markers are recalculated. The same file can be selected again after an upload.
-- **Boundary layer:** upload a `.zip` containing the complete shapefile set: `.shp`, `.shx`, `.dbf`, and preferably `.prj`. The dashboard also accepts a standalone `.shp` for geometry-only boundary display.
-- **GIS / RTI workbook:** select **Upload GIS / RTI workbook** to process all worksheets in one upload. Worksheets with latitude/longitude fields populate the hotspot map, worksheets with GIS headers populate the case-information table, and category worksheets such as `THEFT`, `ROBBERY`, `DRUG CASES`, or `SEXUAL OFFENCES` are counted separately using the worksheet name as the incident category. The offence analysis displays these categories as a pie chart with a case-count legend. This supports RTI workbooks where the coordinate data, GIS datasheet, and incident-category reply are separate worksheets. For a single GIS sheet, categories still come from `Type and nature of the crime`; legal sections remain visible in the case table but are not used as offence categories.
+- **Coordinates:** `.xlsx`, `.xls`, or `.csv` with latitude and longitude fields. The map is generated automatically from these coordinates; no shapefile is required. The dashboard detects common names such as `Latitude`, `Lat`, `Longitude`, `Lon`, `Year`, `Crime`, and `Incident`.
+- **GIS data:** select **Upload GIS data** to display descriptive case information from a separate GIS file.
+- **RTI categories:** select **Upload RTI categories** to load a separate workbook whose worksheet names represent categories such as `THEFT`, `ROBBERY`, `DRUG CASES`, or `SEXUAL OFFENCES`. The offence analysis displays these categories as a pie chart with a case-count legend.
 
 Hotspots are calculated client-side by grouping records into 0.01° grid cells. No uploaded data is sent to a server.

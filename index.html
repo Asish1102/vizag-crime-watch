@@ -39,15 +39,15 @@
           <div class="topbar-actions">
             <label class="upload-button primary">
               <input id="crime-file" type="file" accept=".xlsx,.xls,.csv" />
-              <span>＋</span> Upload new dataset
-            </label>
-            <label class="upload-button secondary">
-              <input id="shape-file" type="file" accept=".zip,.shp" />
-              <span>＋</span> Add boundary .zip
+              <span>＋</span> Upload coordinates
             </label>
             <label class="upload-button secondary">
               <input id="gis-file" type="file" accept=".xlsx,.xls,.csv" />
-              <span>＋</span> Upload GIS / RTI workbook
+              <span>＋</span> Upload GIS data
+            </label>
+            <label class="upload-button secondary">
+              <input id="rti-file" type="file" accept=".xlsx,.xls,.csv" />
+              <span>＋</span> Upload RTI categories
             </label>
             <button id="clear-data" class="upload-button ghost" type="button">Clear data</button>
           </div>
@@ -55,7 +55,7 @@
 
         <section id="notice" class="notice">
           <div class="notice-icon">i</div>
-          <div><strong>Ready for your files</strong><p>Upload an Excel/CSV file with coordinates. A zipped shapefile (SHP + SHX + DBF + PRJ) adds local boundaries.</p></div>
+          <div><strong>Ready for your files</strong><p>Upload the coordinates, GIS data, and RTI category files separately. The map is created automatically from latitude and longitude.</p></div>
           <button id="dismiss-notice" aria-label="Dismiss">×</button>
         </section>
 
@@ -111,13 +111,13 @@
               <div><p class="eyebrow">OFFENCE ANALYSIS</p><h3>Cases by offence category</h3></div>
               <span class="panel-badge">CRIME CATEGORY</span>
             </div>
-            <div id="offence-list" class="offence-list"><div class="table-empty">Upload the GIS dataset to calculate offence categories.</div></div>
+            <div id="offence-list" class="offence-list"><div class="table-empty">Upload the RTI category file to calculate offence categories.</div></div>
           </div>
           <div class="gis-content">
             <div><p class="eyebrow">CRIME TYPE DISTRIBUTION</p><div id="gis-types-list" class="type-list"></div></div>
             <div class="gis-table-wrap">
               <p class="eyebrow">CASE RECORDS</p>
-              <table><thead><tr><th>FIR / YEAR</th><th>POLICE STATION</th><th>SECTION OF LAW</th><th>TYPE</th><th>LOCATION</th></tr></thead><tbody id="gis-table"><tr><td colspan="5" class="table-empty">Upload the GIS dataset to display case information.</td></tr></tbody></table>
+              <table><thead><tr><th>FIR / YEAR</th><th>POLICE STATION</th><th>SECTION OF LAW</th><th>TYPE</th><th>LOCATION</th></tr></thead><tbody id="gis-table"><tr><td colspan="5" class="table-empty">Upload GIS data to display case information.</td></tr></tbody></table>
             </div>
           </div>
         </section>
@@ -149,7 +149,7 @@
             <div class="panel-heading"><div><p class="eyebrow">FIELD GUIDE</p><h3>How to read this view</h3></div></div>
             <div class="insight-list">
               <div><span class="insight-number">01</span><p><strong>Cells are relative.</strong> Hotspots are calculated by grouping incidents into 0.01° latitude/longitude grid cells.</p></div>
-              <div><span class="insight-number">02</span><p><strong>Use the boundary layer.</strong> Add a zipped shapefile to see the subdistrict outline over the incident layer.</p></div>
+              <div><span class="insight-number">02</span><p><strong>Use the coordinate file.</strong> The incident map and hotspot grid are generated directly from its latitude and longitude fields.</p></div>
               <div><span class="insight-number">03</span><p><strong>Filter, then compare.</strong> Year filters recalculate every KPI, chart, and map marker.</p></div>
             </div>
           </article>
@@ -158,7 +158,6 @@
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-    <script src="https://unpkg.com/shpjs@6.1.0/dist/shp.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>
